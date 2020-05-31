@@ -51,8 +51,8 @@ class MFD(object):
                 self.filename = header["Content-disposition"].split("filename=")[-1][1:-1]
             else:
                 filename = url.split("/")[-1]
-                if "." not in filename:
-                    filename = "download_"+str(int(time.time()))
+                # if "." not in filename:
+                #     filename = "download_"+str(int(time.time()))
                 self.filename = filename
             return file_size
         except:
