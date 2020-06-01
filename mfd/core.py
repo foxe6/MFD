@@ -8,7 +8,6 @@ import queue
 
 
 class MFD(object):
-
     def __init__(self, save_dir: str, piece_size: int = 1024*1024*(2**4), retry: int = 5) -> None:
         self.save_dir = save_dir
         self.piece_size = piece_size
