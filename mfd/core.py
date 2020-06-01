@@ -87,8 +87,11 @@ class MFD(object):
 
             tw.add(job, args(i))
         tw.wait()
-        p(f"\rDownloaded {url} => "+join_path(self.save_dir, self.filename))
+        _f = join_path(self.save_dir, self.filename)
+        p(f"\rDownloaded {url} => "+_f)
         if cal_hash:
-            fd = open(join_path(self.save_dir, self.filename), "rb")
-            return {"md5": md5hd(fd), "crc32": crc32hd(fd), "sha1": sha1hd(fd)}
+            fd = open(_f, "rb")
+            return {"md5": md5hd(fd), "crc32": crc32hd(fd), "sha1": sha1hd(fd), "file_path": _f}
+        else:
+            return {"file_path": _f}
 
