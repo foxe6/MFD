@@ -8,20 +8,17 @@ import queue
 
 
 class MFD(object):
-    filename = ""
-    save_dir = ""
-    __header = {"Range": "bytes={}-{}"}
-    piece_size = 0
-    parts = queue.Queue()
-    file_size = 0
-    retry = 0
-    parts_track = {}
 
     def __init__(self, save_dir: str, piece_size: int = 1024*1024*(2**4), retry: int = 5) -> None:
         self.save_dir = save_dir
         self.piece_size = piece_size
         self.retry = retry
         self.terminate = False
+        self.filename = ""
+        self.__header = {"Range": "bytes={}-{}"}
+        self.parts = queue.Queue()
+        self.file_size = 0
+        self.parts_track = {}
         process = threading.Thread(target=self.combiner)
         process.daemon = True
         process.start()
