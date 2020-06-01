@@ -15,6 +15,7 @@ class MFD(object):
     parts = queue.Queue()
     file_size = 0
     retry = 0
+    parts_track = {}
 
     def __init__(self, save_dir: str, piece_size: int = 1024*1024*(2**4), retry: int = 5) -> None:
         self.save_dir = save_dir
@@ -34,6 +35,7 @@ class MFD(object):
                         f.seek(k * self.piece_size, 0)
                         f.write(v)
                         f.close()
+                    self.parts_track.pop(k)
                 self.parts.task_done()
             except Exception as e:
                 print(e, k, len(v), v[:16], v[-16:], flush=True)
@@ -85,12 +87,14 @@ class MFD(object):
                         time.sleep(1)
                 raise Exception(f"failed to download {url} range "+header["Range"])
 
+            self.parts_track[i] = 0
             tw.add(job, args(i))
         tw.wait()
+        while len(self.parts_track) > 0:
+            time.sleep(1/10)
         _f = join_path(self.save_dir, self.filename)
         p(f"\r[MFD] Downloaded {url} => "+_f)
         if cal_hash:
-            time.sleep(1)
             fd = open(_f, "rb")
             # return {"md5": md5hd(fd), "crc32": crc32hd(fd), "sha1": sha1hd(fd), "file_path": _f}
             return {"sha1": sha1hd(fd), "file_path": _f}
