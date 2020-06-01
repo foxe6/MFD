@@ -91,7 +91,8 @@ class MFD(object):
         p(f"\r[MFD] Downloaded {url} => "+_f)
         if cal_hash:
             fd = open(_f, "rb")
-            return {"md5": md5hd(fd), "crc32": crc32hd(fd), "sha1": sha1hd(fd), "file_path": _f}
+            # return {"md5": md5hd(fd), "crc32": crc32hd(fd), "sha1": sha1hd(fd), "file_path": _f}
+            return {"sha1": sha1hd(fd), "file_path": _f}
         else:
             return {"file_path": _f}
 
