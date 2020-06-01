@@ -68,7 +68,7 @@ class MFD(object):
         self.file_size = self.__get_file_size(url)
         self.__create_empty_file()
         tw = threadwrapper.ThreadWrapper(threading.Semaphore(connections))
-        p(f"Downloading {url} with {connections} connections", end="")
+        p(f"[MFD] Downloading {url} with {connections} connections", end="")
         for i in range(0, self.file_size // self.piece_size + 1):
             def job(i):
                 header = self.__header.copy()
@@ -88,7 +88,7 @@ class MFD(object):
             tw.add(job, args(i))
         tw.wait()
         _f = join_path(self.save_dir, self.filename)
-        p(f"\rDownloaded {url} => "+_f)
+        p(f"\r[MFD] Downloaded {url} => "+_f)
         if cal_hash:
             fd = open(_f, "rb")
             return {"md5": md5hd(fd), "crc32": crc32hd(fd), "sha1": sha1hd(fd), "file_path": _f}
