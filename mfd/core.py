@@ -7,6 +7,9 @@ import time
 import queue
 
 
+__ALL__ = ["MFD"]
+
+
 class MFD(object):
     def __init__(self, save_dir: str, piece_size: int = 1024*1024*(2**4), retry: int = 5) -> None:
         self.save_dir = save_dir
@@ -22,7 +25,7 @@ class MFD(object):
         process.daemon = True
         process.start()
 
-    def combiner(self):
+    def combiner(self) -> None:
         while not self.terminate:
             k, v = self.parts.get()
             try:
@@ -36,7 +39,7 @@ class MFD(object):
             except Exception as e:
                 print(e, k, len(v), v[:16], v[-16:], flush=True)
 
-    def stop(self):
+    def stop(self) -> None:
         self.terminate = True
 
     def __get_file_size(self, url: str) -> int:
@@ -56,17 +59,19 @@ class MFD(object):
         except:
             raise Exception("server does not support multi-threaded file downloading")
 
-    def __create_empty_file(self):
+    def __create_empty_file(self) -> None:
         with open(join_path(self.save_dir, self.filename), "wb") as f:
             f.seek(self.file_size-1)
             f.write(b"\0")
             f.close()
 
-    def download(self, url: str, connections: int = 2**3, cal_hash: bool = False):
+    def download(self, url: str, connections: int = 2**3, cal_hash: bool = False,
+                 quiet: bool = False) -> dict:
         self.file_size = self.__get_file_size(url)
         self.__create_empty_file()
         tw = threadwrapper.ThreadWrapper(threading.Semaphore(connections))
-        p(f"[MFD] Downloading {url} with {connections} connections", end="")
+        if not quiet:
+            p(f"[MFD] Downloading {url} with {connections} connections", end="")
         for i in range(0, self.file_size // self.piece_size + 1):
             def job(i):
                 header = self.__header.copy()
@@ -89,7 +94,8 @@ class MFD(object):
         while len(self.parts_track) > 0:
             time.sleep(1/10)
         _f = join_path(self.save_dir, self.filename)
-        p(f"\r[MFD] Downloaded {url} => "+_f)
+        if not quiet:
+            p(f"\r[MFD] Downloaded {url} => "+_f)
         if cal_hash:
             fd = open(_f, "rb")
             # return {"md5": md5hd(fd), "crc32": crc32hd(fd), "sha1": sha1hd(fd), "file_path": _f}

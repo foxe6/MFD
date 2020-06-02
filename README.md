@@ -10,6 +10,8 @@
 
 <i>Useful for downloading files from servers which does not throttle bandwidth of each connection as long as that total bandwidth does not exceed ISP caps.</i>
 
+<u>No cookie or session support.</u>
+
 ```
 Example:
 ISP cap: 2MBps
@@ -31,11 +33,37 @@ Download speed is capped by file server, can be enhanced by using more connectio
 
 ```
 mfd
+'---- MFD()
+    |---- download()
+    '---- stop()
 ```
 
 # Example
 
 ## python
 ```python
-
+from mfd import MFD
+mfd = MFD(
+    # file saving directory
+    save_dir="I:\\test",
+    # piece size of each download connection
+    # adjust with hard disk speed and Internet bandwidth
+    # size in bytes
+    piece_size=1024*1024*(2**4),
+    # number of retry when a piece is failed to download
+    retry=2
+)
+info = mfd.download(
+    # file url
+    url="direct download url",
+    # number of download connections
+    connections=2**3,
+    # whether to calculate SHA1 after downloading
+    cal_hash=False
+)
+print(info)
+# {"file_path": "I:\\test\\file"}
+# {"file_path": "I:\\test\\file", "sha1": "checksum"}
+# necessary to stop the downloader after downloading
+mfd.stop()
 ```

@@ -1,3 +1,4 @@
 requests==2.23.0
 filehandling>=0.0.1
+threadwrapper>=0.0.1
 omnitools>=0.0.1
