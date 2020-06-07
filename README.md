@@ -35,12 +35,15 @@ Download speed is capped by file server, can be enhanced by using more connectio
 mfd
 '---- MFD()
     |---- download()
+    |---- retry_download() 
     '---- stop()
 ```
 
 # Example
 
 ## python
+<u>MFD() is not thread-safe.  
+Do not use the same MFD() instance in threads.</u>
 ```python
 from mfd import MFD
 mfd = MFD(
@@ -64,6 +67,16 @@ info = mfd.download(
 print(info)
 # {"file_path": "I:\\test\\file"}
 # {"file_path": "I:\\test\\file", "sha1": "checksum"}
+# if it is failed to download after the specified retries,
+# an exception is raised
+# additional retry can be like this
+try:
+    mfd.download(...)
+except: 
+    mfd.retry_download(
+        # number of download connections
+        connections=2**3
+    )
 # necessary to stop the downloader after downloading
 mfd.stop()
 ```
