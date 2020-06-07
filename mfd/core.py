@@ -17,10 +17,12 @@ class MFD(object):
         self.retry = retry
         self.terminate = False
         self.filename = ""
+        self.url = ""
         self.__header = {"Range": "bytes={}-{}"}
         self.parts = queue.Queue()
         self.file_size = 0
-        self.parts_track = {}
+        self.pending_write_parts = []
+        self.failed_parts = []
         process = threading.Thread(target=self.combiner)
         process.daemon = True
         process.start()
@@ -34,7 +36,8 @@ class MFD(object):
                         f.seek(k * self.piece_size, 0)
                         f.write(v)
                         f.close()
-                    self.parts_track.pop(k)
+                    self.pending_write_parts.remove(k)
+                    self.failed_parts.remove(k)
                 self.parts.task_done()
             except Exception as e:
                 print(e, k, len(v), v[:16], v[-16:], flush=True)
@@ -65,34 +68,43 @@ class MFD(object):
             f.write(b"\0")
             f.close()
 
+    def __download(self, i: int) -> None:
+        header = self.__header.copy()
+        end = (i+1) * self.piece_size - 1
+        if i == self.file_size//self.piece_size+1:
+            end = self.file_size
+        header["Range"] = header["Range"].format(i * self.piece_size, end)
+        try:
+            content = requests.get(self.url, headers=header).content
+            self.parts.put((i, content))
+        except:
+            p(f"failed to download {self.url} range "+header["Range"])
+
+    def retry_download(self, connections: int = 2**3):
+        tw = threadwrapper.ThreadWrapper(threading.Semaphore(connections))
+        for i in self.failed_parts:
+            self.pending_write_parts.append(i)
+            tw.add(self.__download, args(i))
+        tw.wait()
+        while len(self.pending_write_parts) > 0:
+            time.sleep(1/10)
+
     def download(self, url: str, connections: int = 2**3, cal_hash: bool = False,
                  quiet: bool = False) -> dict:
+        self.url = url
         self.file_size = self.__get_file_size(url)
         self.__create_empty_file()
-        tw = threadwrapper.ThreadWrapper(threading.Semaphore(connections))
         if not quiet:
             p(f"[MFD] Downloading {url} with {connections} connections", end="")
         for i in range(0, self.file_size // self.piece_size + 1):
-            def job(i):
-                header = self.__header.copy()
-                end = (i+1) * self.piece_size - 1
-                if i == self.file_size//self.piece_size+1:
-                    end = self.file_size
-                header["Range"] = header["Range"].format(i * self.piece_size, end)
-                for j in range(0, self.retry):
-                    try:
-                        content = requests.get(url, headers=header).content
-                        self.parts.put((i, content))
-                        return
-                    except:
-                        time.sleep(1)
-                raise Exception(f"failed to download {url} range "+header["Range"])
-
-            self.parts_track[i] = 0
-            tw.add(job, args(i))
-        tw.wait()
-        while len(self.parts_track) > 0:
-            time.sleep(1/10)
+            self.failed_parts.append(i)
+        self.retry_download(connections)
+        retry_ct = 0
+        while len(self.failed_parts) > 0:
+            if retry_ct >= self.retry:
+                raise Exception(f"failed to download {self.url} after {self.retry} retries")
+            self.retry_download(connections)
+            retry_ct += 1
         _f = join_path(self.save_dir, self.filename)
         if not quiet:
             p(f"\r[MFD] Downloaded {url} => "+_f)
