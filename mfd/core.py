@@ -1,7 +1,7 @@
 import requests
 import threading
 import threadwrapper
-from omnitools import args, md5hd, crc32hd, sha1hd, p
+from omnitools import def_template, md5hd, crc32hd, sha1hd, p
 from filehandling import join_path
 import time
 import queue
@@ -84,7 +84,7 @@ class MFD(object):
         tw = threadwrapper.ThreadWrapper(threading.Semaphore(connections))
         for i in self.failed_parts:
             self.pending_write_parts.append(i)
-            tw.add(self.__download, args(i))
+            tw.add(def_template(self.__download, i))
         tw.wait()
         while len(self.pending_write_parts) > 0:
             time.sleep(1/10)
